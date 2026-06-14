@@ -1,5 +1,3 @@
-// jest.mock é içado antes das declarações de variáveis — factory não pode referenciar consts do escopo externo.
-// Por isso o mock é declarado com apenas jest.fn() e configurado via mockResolvedValue no beforeEach.
 jest.mock('puppeteer', () => ({
   launch: jest.fn(),
 }));

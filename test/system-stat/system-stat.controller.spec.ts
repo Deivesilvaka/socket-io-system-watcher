@@ -1,4 +1,3 @@
-// Puppeteer usa ESM — precisa ser mockado antes de qualquer import que o carregue transitivamente.
 jest.mock('puppeteer', () => ({
   launch: jest.fn(),
 }));
