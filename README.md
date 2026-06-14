@@ -127,6 +127,8 @@ http://localhost:3000
 
 O dashboard exibe gráficos de CPU e RAM atualizados a cada 3 segundos via Socket.IO.
 
+O arquivo HTML fica em `public/index.html`. Qualquer asset estático adicionado nessa pasta (CSS, JS, imagens) é servido automaticamente.
+
 ---
 
 ## API REST
