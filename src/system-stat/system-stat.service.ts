@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { SystemStat } from './system-stat.entity';
 
 @Injectable()
@@ -16,5 +16,12 @@ export class SystemStatService {
       ram: parseFloat(data.ram),
     });
     await this.repository.save(stat);
+  }
+
+  async findByPeriod(startDate: Date, endDate: Date): Promise<SystemStat[]> {
+    return this.repository.find({
+      where: { createdAt: Between(startDate, endDate) },
+      order: { createdAt: 'ASC' },
+    });
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
+import { CPU_ALERT_THRESHOLD } from 'src/system.gateway';
 
 @Injectable()
 export class MailService {
@@ -30,7 +31,7 @@ export class MailService {
       subject: '[SystemWatcher] Alerta: CPU acima de 90%',
       html: `
         <h2 style="color:#c0392b;">⚠️ Alerta de CPU Crítico</h2>
-        <p>O uso do processador ultrapassou o limite de <strong>90%</strong>.</p>
+        <p>O uso do processador ultrapassou o limite de <strong>${CPU_ALERT_THRESHOLD}%</strong>.</p>
         <table style="border-collapse:collapse;margin-top:12px;">
           <tr>
             <td style="padding:4px 12px 4px 0;font-weight:bold;">CPU:</td>

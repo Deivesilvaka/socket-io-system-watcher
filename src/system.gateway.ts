@@ -5,7 +5,7 @@ import { Interval } from '@nestjs/schedule';
 import { SystemStatService } from './system-stat/system-stat.service';
 import { MailService } from './mail/mail.service';
 
-const CPU_ALERT_THRESHOLD = 90;
+export const CPU_ALERT_THRESHOLD = 90;
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class SystemGateway {

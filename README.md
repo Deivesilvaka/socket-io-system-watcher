@@ -1,98 +1,252 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# System Watcher
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Serviço de monitoramento de sistema em tempo real construído com **NestJS**, **Socket.IO** e **PostgreSQL**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Coleta métricas de CPU e RAM a cada **3 segundos**, transmite ao dashboard via WebSocket, dispara alertas por e-mail quando a CPU ultrapassa 90% e permite baixar **relatórios em PDF** com gráficos interativos gerados pelo Plotly.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Sumário
 
-## Project setup
+- [Arquitetura](#arquitetura)
+- [Pré-requisitos](#pré-requisitos)
+- [Configuração do ambiente](#configuração-do-ambiente)
+- [Banco de dados](#banco-de-dados)
+- [Rodando o projeto](#rodando-o-projeto)
+- [Dashboard em tempo real](#dashboard-em-tempo-real)
+- [API REST](#api-rest)
+- [Documentação Swagger](#documentação-swagger)
+- [Testando o endpoint de relatório](#testando-o-endpoint-de-relatório)
+- [Testes automatizados](#testes-automatizados)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
 
-```bash
-$ npm install
+---
+
+## Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        NestJS App                           │
+│                                                             │
+│  ┌─────────────────┐    ┌──────────────────────────────┐   │
+│  │  SystemGateway  │    │     SystemStatController      │   │
+│  │  (WebSocket)    │    │  GET /stats/report            │   │
+│  │  @Interval 3s   │    │  → ReportService (PDF)        │   │
+│  └────────┬────────┘    └──────────────┬───────────────┘   │
+│           │                            │                    │
+│  ┌────────▼────────────────────────────▼───────────────┐   │
+│  │              SystemStatService                       │   │
+│  │         save() · findByPeriod()                      │   │
+│  └────────────────────────┬────────────────────────────┘   │
+│                           │                                 │
+│  ┌────────────────────────▼────────────────────────────┐   │
+│  │                   PostgreSQL                         │   │
+│  │              tabela: system_stats                    │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+         │                          │
+   Socket.IO clients          HTTP clients
+   (dashboard HTML)           (Swagger / curl)
 ```
 
-## Compile and run the project
+---
+
+## Pré-requisitos
+
+| Ferramenta | Versão mínima |
+|---|---|
+| Node.js | 18.x |
+| npm | 9.x |
+| Docker + Docker Compose | qualquer versão recente |
+
+---
+
+## Configuração do ambiente
+
+1. Clone o repositório e instale as dependências:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <url-do-repositorio>
+cd socket-io-system-watcher
+npm install
 ```
 
-## Run tests
+2. Copie o arquivo de exemplo e preencha as variáveis:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+> Consulte a seção [Variáveis de ambiente](#variáveis-de-ambiente) para detalhes de cada campo.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Banco de dados
+
+Suba o PostgreSQL via Docker Compose:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run db:up
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Execute as migrations para criar a tabela `system_stats`:
 
-## Resources
+```bash
+npm run migration:run
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Para derrubar o banco:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm run db:down
+```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Rodando o projeto
 
-## Stay in touch
+```bash
+# modo desenvolvimento (hot reload)
+npm run start:dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# modo produção
+npm run start:prod
+```
 
-## License
+O servidor sobe em `http://localhost:3000` (ou na porta definida em `PORT`).
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
+
+## Dashboard em tempo real
+
+Abra o navegador em:
+
+```
+http://localhost:3000
+```
+
+O dashboard exibe gráficos de CPU e RAM atualizados a cada 3 segundos via Socket.IO.
+
+---
+
+## API REST
+
+### `GET /stats/report`
+
+Gera e faz o download de um relatório em **PDF** contendo:
+
+- Cards de resumo (CPU e RAM: média, pico e mínima)
+- Gráfico de linha de CPU ao longo do tempo (Plotly)
+- Gráfico de linha de RAM ao longo do tempo (Plotly)
+- Tabela com os registros do período (até 100 linhas)
+
+#### Query parameters
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `startDate` | string (ISO 8601) | Não* | Início do período |
+| `endDate` | string (ISO 8601) | Não* | Fim do período |
+
+> \* Se nenhum parâmetro for enviado, o relatório cobre o **dia atual** (00:00:00 UTC → 23:59:59 UTC).  
+> Se um for enviado, o outro é obrigatório.
+
+#### Exemplos com curl
+
+```bash
+# Relatório do dia atual
+curl -OJ http://localhost:3000/stats/report
+
+# Relatório de um período específico
+curl -OJ "http://localhost:3000/stats/report?startDate=2025-06-13T00:00:00.000Z&endDate=2025-06-14T23:59:59.999Z"
+```
+
+#### Respostas
+
+| Status | Descrição |
+|---|---|
+| `200` | PDF gerado — download iniciado automaticamente |
+| `400` | Parâmetro inválido (formato incorreto, período inválido ou apenas um dos parâmetros enviado) |
+
+---
+
+## Documentação Swagger
+
+Com o servidor rodando, acesse a UI interativa em:
+
+```
+http://localhost:3000/api
+```
+
+O Swagger permite visualizar a documentação completa do endpoint e testar a geração do relatório diretamente pelo navegador.
+
+---
+
+## Testando o endpoint de relatório
+
+### Via Swagger UI
+
+1. Acesse `http://localhost:3000/api`
+2. Expanda o endpoint `GET /stats/report`
+3. Clique em **Try it out**
+4. Preencha `startDate` e `endDate` (opcional) e clique em **Execute**
+5. Role até a seção *Response body* e clique em **Download file**
+
+### Via curl
+
+```bash
+# Relatório do dia atual — salva automaticamente com o nome do arquivo
+curl -OJ http://localhost:3000/stats/report
+
+# Período específico
+curl -OJ "http://localhost:3000/stats/report?startDate=2025-06-14T00:00:00.000Z&endDate=2025-06-14T23:59:59.999Z"
+```
+
+### Via Insomnia / Postman
+
+- Método: `GET`
+- URL: `http://localhost:3000/stats/report`
+- Parâmetros (opcionais): `startDate`, `endDate`
+- A resposta será um arquivo `.pdf` — configure o cliente para salvar o binário.
+
+---
+
+## Testes automatizados
+
+```bash
+# Todos os testes unitários
+npm run test
+
+# Modo watch (re-executa ao salvar)
+npm run test:watch
+
+# Cobertura de código
+npm run test:cov
+```
+
+Os testes cobrem:
+
+| Arquivo | O que é testado |
+|---|---|
+| `system-stat.service.spec.ts` | `save()` e `findByPeriod()` — repositório mockado |
+| `system-stat.controller.spec.ts` | Validação de datas, defaults e chamadas ao service/report |
+| `report.service.spec.ts` | Geração do HTML e do PDF (Puppeteer mockado) |
+
+---
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `PORT` | `3000` | Porta HTTP do servidor |
+| `DB_HOST` | `localhost` | Host do PostgreSQL |
+| `DB_PORT` | `5432` | Porta do PostgreSQL |
+| `DB_USERNAME` | `postgres` | Usuário do banco |
+| `DB_PASSWORD` | `postgres` | Senha do banco |
+| `DB_DATABASE` | `system_watcher` | Nome do banco |
+| `MAIL_HOST` | — | SMTP host (ex: `sandbox.smtp.mailtrap.io`) |
+| `MAIL_PORT` | — | SMTP port (ex: `2525`) |
+| `MAIL_USER` | — | Usuário SMTP |
+| `MAIL_PASSWORD` | — | Senha SMTP |
+| `MAIL_SENDER_DEFAULT` | — | Endereço de remetente (ex: `no-reply@example.com`) |
+| `MAIL_SENDER_NAME_DEFAULT` | — | Nome do remetente (ex: `SystemWatcher`) |
+| `MAIL_ALERT_TO` | — | Destinatário dos alertas de CPU |
